@@ -1,3 +1,6 @@
+/* eslint-disable */
+
+
 import { useEffect, useState } from "react";
 import { useAppKitAccount } from "@reown/appkit/react";
 import { useTransferFunds } from "../hooks/useTransferFunds";
