@@ -18,7 +18,8 @@ export default function CheckWalletBalance() {
   const [status, setStatus] = useState("");
   const chainId = useChainId();
 
-  const { balance, symbol } = useNativeBalance(address);
+  const { balance, symbol } = useNativeBalance(address as `0x${string}`);
+  
 
   useEffect(() => {
     if (!isConnected || !address) return;

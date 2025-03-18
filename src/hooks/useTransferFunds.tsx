@@ -1,6 +1,7 @@
-import { useWriteContract, useSendTransaction, useChainId } from "wagmi";
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+import { useWriteContract, useSendTransaction} from "wagmi";
 import { ethers } from "ethers";
-import { ERC20_ABI, GAS_BUFFER } from "../constants";
+import { ERC20_ABI } from "../constants";
 
 export function useTransferFunds() {
   // ✅ Hooks are called at the top level
@@ -36,9 +37,13 @@ export function useTransferFunds() {
     try {
 
       const parsedAmount = ethers.parseUnits(amount, decimals);
+      const safeContractAddress = contractAddress as unknown as `0x${string}`;
+ 
 
+      // @ts-ignore
+      
       await writeContractAsync({
-        address: contractAddress,
+        address : safeContractAddress,
         abi: ERC20_ABI,
         functionName: "transfer",
         args: [recipient, parsedAmount],

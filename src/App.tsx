@@ -1,5 +1,6 @@
+ 
 import { createAppKit } from "@reown/appkit/react";
-import { WagmiProvider, useAccount, useBalance } from "wagmi";
+import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { projectId, metadata, networks, wagmiAdapter } from "./config";
 import "./App.css";
@@ -16,9 +17,9 @@ createAppKit({
   themeMode: "dark",
   themeVariables: {
     "--w3m-accent": "#4F46E5",
-    "--w3m-background": "#1E1E2E",
-    "--w3m-text": "#FFFFFF",
-    "--w3m-border-radius": "8px",
+    // "--w3m-background": "#1E1E2E",
+    // "--w3m-text": "#FFFFFF",
+    // "--w3m-border-radius": "8px",
   },
   features: { analytics: true },
 });
@@ -37,15 +38,11 @@ function WalletComponent() {
   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-950 text-white px-6 transition-all">
-     
-
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold tracking-wide text-gray-200">EVM Wallet Connect</h1>
         <p className="text-gray-400 mt-2">Manage your crypto assets securely</p>
       </div>
-
-      <appkit-button class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-transform transform hover:scale-105"></appkit-button>
-
+      <appkit-button ></appkit-button>
       <CheckWalletBalance />
     </div>
   );
