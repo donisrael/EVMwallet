@@ -31,3 +31,15 @@ export const ERC20_ABI = [
     type: "function",
   },
 ];
+
+export const supportedChains = [
+  { id: 1, name: "Ethereum", nativeSymbol: "ETH" },
+  { id: 56, name: "Binance Smart Chain", nativeSymbol: "BNB" },
+  { id: 137, name: "Polygon", nativeSymbol: "MATIC" },
+  { id: 42161, name: "Arbitrum", nativeSymbol: "ETH" },
+];
+
+export const CHAIN_TO_ALCHEMY_NETWORK: Record<number, string> = {
+  1: "eth-mainnet",     // Ethereum Mainnet
+  56: "bnb-mainnet",    // BNB Chain Mainnet (Alchemy now supports BSC)
+};

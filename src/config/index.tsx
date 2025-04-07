@@ -16,7 +16,7 @@ if (!projectId) {
 export const metadata = {
     name: 'wallet connect',
     description: 'wallet connect',
-    url: '', // origin must match your domain & subdomain
+    url: 'https://ev-mwallet.vercel.app/', // origin
     icons: ['https://avatars.githubusercontent.com/u/179229932']
   }
 
