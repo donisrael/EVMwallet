@@ -39,7 +39,7 @@ function WalletComponent() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-950 text-white px-6 transition-all">
       <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold tracking-wide text-gray-200">EVM Wallet Connect</h1>
+        <h1 className="text-4xl font-bold tracking-wide text-gray-200">EWallet Connect</h1>
         <p className="text-gray-400 mt-2">Manage your crypto assets securely</p>
       </div>
       <appkit-button ></appkit-button>
