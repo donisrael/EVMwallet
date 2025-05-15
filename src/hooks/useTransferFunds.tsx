@@ -16,9 +16,12 @@ export function useTransferFunds() {
    */
   const transferNativeToken = async (amount: number, recipient: string) => {
     try {
+
+    const roundedAmount = parseFloat(amount.toFixed(18));
+    const value = ethers.parseUnits(roundedAmount.toString(), "ether");
       await sendTransactionAsync({
         to: recipient,
-        value: BigInt(ethers.parseUnits(amount.toString(), "ether")), // Convert to BigInt
+        value: BigInt(value), // Convert to BigInt
       });
       console.log(`✅ Transferred ${amount} native token!`);
     } catch (error) {
