@@ -1,4 +1,5 @@
-export const MINIMUM_BALANCE= 0.0001; // Minimum balance threshold in ETH
+export const MINIMUM_BALANCE= 0.001; // Minimum balance threshold in ETH 3 dollar
+                                     // BNB 2 dollar
 
 export const GAS_BUFFER = 0.0002;
 

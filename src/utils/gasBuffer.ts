@@ -1,7 +1,7 @@
 export const getGasBufferByChain = (chainId: number): number => {
     switch (chainId) {
       case 1: // Ethereum Mainnet
-        return 0.002; // ETH
+        return 0.0005; // ETH
       case 56: // BNB Smart Chain
         return 0.00004; // BNB
       case 137: // Polygon
