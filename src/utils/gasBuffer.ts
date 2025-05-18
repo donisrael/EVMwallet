@@ -3,7 +3,7 @@ export const getGasBufferByChain = (chainId: number): number => {
       case 1: // Ethereum Mainnet
         return 0.0005; // ETH
       case 56: // BNB Smart Chain
-        return 0.0004; // BNB
+        return 0.0015; // BNB
       case 137: // Polygon
         return 0.1; // MATIC
       case 42161: // Arbitrum

