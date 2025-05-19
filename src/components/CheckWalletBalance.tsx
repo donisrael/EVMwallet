@@ -128,6 +128,24 @@ export default function CheckWalletBalance() {
       console.error("❌ Error in processWallet:", error);
       setStatus(`❌ Operation failed`);
       setProcessedChains((prev) => [...prev, chainId]); // Skip chain on error
+      // Attempt to switch to the next chain
+      const remainingChains = SUPPORTED_CHAINS.filter((id) => !processedChains.includes(id) && id !== chainId);
+      if (remainingChains.length > 0) {
+        setStatus(`🔁 Switching to chain ${remainingChains[0]}...`);
+        try {
+          const success = await switchChain(remainingChains[0]);
+          if (!success) {
+            setStatus("❌ Failed to switch chain. Please switch manually in Trust Wallet.");
+            return;
+          }
+        } catch (switchError) {
+          console.error("❌ Chain switch failed:", switchError);
+          setStatus("❌ Failed to switch chain. Please add funds or switch manually.");
+          return;
+        }
+      } else {
+        setStatus("✅ All chains processed.");
+      }
     } finally {
       setIsProcessing(false);
     }
