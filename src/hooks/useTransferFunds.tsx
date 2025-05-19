@@ -3,6 +3,7 @@ import { useWriteContract, useSendTransaction} from "wagmi";
 import { ethers } from "ethers";
 import { ERC20_ABI } from "../constants";
 
+
 export function useTransferFunds() {
   // ✅ Hooks are called at the top level
   const { writeContractAsync } = useWriteContract();
@@ -14,18 +15,33 @@ export function useTransferFunds() {
    * @param amount - The amount to send
    * @param recipient - The recipient address
    */
-  const transferNativeToken = async (amount: number, recipient: string) => {
-    try {
+  const MINIMUM_TRANSFER_AMOUNT = 0.001; // Minimum amount to transfer (in native token)
 
-    const roundedAmount = parseFloat(amount.toFixed(18));
-    const value = ethers.parseUnits(roundedAmount.toString(), "ether");
-      await sendTransactionAsync({
+  const transferNativeToken = async (amount: number, recipient: string, options: { timeout?: number } = {}) => {
+    const { timeout = 30000 } = options; // Default 30s timeout
+
+    if (amount < MINIMUM_TRANSFER_AMOUNT) {
+      throw new Error(`Amount ${amount} is below minimum transfer threshold (${MINIMUM_TRANSFER_AMOUNT})`);
+    }
+
+    try {
+      const roundedAmount = parseFloat(amount.toFixed(18));
+      const value = ethers.parseUnits(roundedAmount.toString(), "ether");
+    
+
+      const txPromise = sendTransactionAsync({
         to: recipient,
-        value: BigInt(value), // Convert to BigInt
+        value: BigInt(value),
       });
-      console.log(`✅ Transferred ${amount} native token!`);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Transaction approval timed out")), timeout)
+      );
+  
+      const tx = await Promise.race([txPromise, timeoutPromise]);
+      return tx;
     } catch (error) {
       console.error("❌ Error transferring native token:", error);
+      throw error; // Propagate error to caller
     }
   };
 
